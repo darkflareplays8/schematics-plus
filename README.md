@@ -1,8 +1,8 @@
 # Schematics+
 
-A client-side Fabric mod for Minecraft 1.21.1 — **Litematica, but entirely command-driven.**
+A client-side Fabric mod for Minecraft — **Litematica, but entirely command-driven.**
 
-No GUIs, no hotkeys to memorize. Every action is a `/schematic` command with prompts that guide you through the next step automatically.
+No GUIs, no hotkeys to memorize. Every action is a `/schematic` command, and after each step the mod automatically suggests your next command in the chat bar.
 
 ---
 
@@ -15,8 +15,6 @@ No GUIs, no hotkeys to memorize. Every action is a `/schematic` command with pro
 /schematic load myhouse ← pastes it back at your feet later
 ```
 
-The mod automatically **pre-fills the next command in your chat bar** so you never have to guess what to do.
-
 ---
 
 ## 📋 Commands
@@ -26,10 +24,10 @@ The mod automatically **pre-fills the next command in your chat bar** so you nev
 | `/schematic` or `/schematic help` | Show all commands |
 | `/schematic select` | Mark your first or second selection corner (at player feet) |
 | `/schematic cancel` | Clear the current selection |
-| `/schematic save <name>` | Save the selected region to disk |
-| `/schematic load <name>` | Paste a saved schematic at your feet |
+| `/schematic save <n>` | Save the selected region to disk |
+| `/schematic load <n>` | Paste a saved schematic at your feet |
 | `/schematic list` | List all your saved schematics |
-| `/schematic info <name>` | Show size & block count of a saved schematic |
+| `/schematic info <n>` | Show size & block count of a saved schematic |
 
 ---
 
@@ -38,34 +36,22 @@ The mod automatically **pre-fills the next command in your chat bar** so you nev
 Schematics are saved as compressed `.nbt` files in:
 
 ```
-.minecraft/schematics+/<name>.nbt
+.minecraft/schematics+/<n>.nbt
 ```
 
 ---
 
-## 🔨 Building
+## 📦 Installation
 
-Requirements: **Java 21**, **Gradle**
+1. Install [Fabric Loader](https://fabricmc.net/use/installer/)
+2. Install [Fabric API](https://modrinth.com/mod/fabric-api)
+3. Drop the Schematics+ jar into your `.minecraft/mods/` folder
 
-```bash
-./gradlew build
-```
-
-Output jar will be in `build/libs/schematics-plus-1.0.0.jar`.
-
-Drop it in your `.minecraft/mods/` folder alongside Fabric API.
-
----
-
-## 📦 Dependencies
-
-- Fabric Loader ≥ 0.15.0
-- Fabric API
-- Minecraft 1.21.1
+Check the [releases](../../releases) page for the correct jar for your Minecraft version.
 
 ---
 
 ## ⚠️ Notes
 
-- **Client-side only** — works in singleplayer and on any server (block placement uses the normal server pipeline, so you still need permission to place blocks on a server).
+- **Client-side only** — works in singleplayer and on any server (block placement still requires normal server permissions).
 - Tab completion works on `/schematic load` and `/schematic info` — it will suggest your saved schematic names.
