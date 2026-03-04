@@ -7,6 +7,7 @@ import com.schematicsplus.schematic.PlacementManager;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,11 +35,20 @@ public class SchematicsPlusMod implements ClientModInitializer {
         SelectionBoxRenderer.register();
         PreviewRenderer.register();
 
-        // Every tick: update anchor only when FLOATING (stops after confirm)
+        // Update floating preview anchor every tick
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             PlacementManager pm = PlacementManager.getInstance();
             if (pm.isFloating() && client.player != null) {
                 pm.updateAnchor(client.player);
+            }
+        });
+
+        // When a block is broken, remove it from the active schematic
+        // so the ghost doesn't snap back
+        PlayerBlockBreakEvents.AFTER.register((world, player, pos, state, blockEntity) -> {
+            PlacementManager pm = PlacementManager.getInstance();
+            if (pm.hasPreview()) {
+                pm.removeBlockAt(pos);
             }
         });
 

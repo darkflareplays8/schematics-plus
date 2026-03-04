@@ -1,5 +1,6 @@
 package com.schematicsplus.render;
 
+import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.schematicsplus.schematic.MaterialList;
 import com.schematicsplus.schematic.PlacementManager;
@@ -11,10 +12,8 @@ import net.minecraft.block.BlockRenderType;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gl.ShaderProgramKeys;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.render.*;
-import net.minecraft.client.render.block.BlockRenderManager;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
@@ -22,15 +21,7 @@ import org.joml.Matrix4f;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
-/**
- * Renders:
- *  1. Ghost block models for the active schematic preview
- *     - Normal block model, tinted cyan (clear) or red (overlap)
- *     - Blocks that are already placed correctly are skipped
- *  2. Top-right HUD overlay — live material tracker
- */
 public class PreviewRenderer {
 
     private static final int HUD_MAX_ENTRIES = 10;
@@ -56,8 +47,6 @@ public class PreviewRenderer {
 
         Vec3d cam = ctx.camera().getPos();
         MatrixStack matrices = ctx.matrixStack();
-
-        BlockRenderManager blockRenderer = client.getBlockRenderManager();
 
         RenderSystem.enableBlend();
         RenderSystem.blendFuncSeparate(
@@ -85,11 +74,10 @@ public class PreviewRenderer {
 
             BlockState worldState = client.world.getBlockState(pos);
             boolean alreadyPlaced = worldState.getBlock().equals(schematicState.getBlock());
-            if (alreadyPlaced) continue; // already done, don't render ghost
+            if (alreadyPlaced) continue;
 
             boolean overlaps = !(worldState.getBlock() instanceof AirBlock);
 
-            // Tint: cyan = clear, red = conflict
             float r, g, b, a;
             if (overlaps) {
                 r = 1.0f; g = 0.1f; b = 0.1f; a = 0.55f;
@@ -104,17 +92,16 @@ public class PreviewRenderer {
                     pos.getZ() - cam.z
             );
 
-            // Render a tinted wireframe box for this block
             BufferBuilder buffer = tessellator.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR);
             Matrix4f mat = matrices.peek().getPositionMatrix();
             drawFilledBox(buffer, mat, 0, 0, 0, 1, 1, 1, r, g, b, a);
-            RenderSystem.setShader(ShaderProgramKeys.POSITION_COLOR);
+            RenderSystem.setShader(GameRenderer::getPositionColorProgram);
             BufferRenderer.drawWithGlobalProgram(buffer.end());
 
             matrices.pop();
         }
 
-        // Draw outlines on top
+        // Outlines on top
         RenderSystem.lineWidth(1.2f);
         VertexConsumerProvider.Immediate immediate = client.getBufferBuilders().getEntityVertexConsumers();
         VertexConsumer lines = immediate.getBuffer(RenderLayer.getLines());
@@ -156,7 +143,7 @@ public class PreviewRenderer {
     }
 
     // ================================================================
-    //  HUD — top-right materials list, live updating
+    //  HUD — top-right materials list
     // ================================================================
 
     private static void renderHud(DrawContext context, RenderTickCounter tickCounter) {
@@ -167,7 +154,6 @@ public class PreviewRenderer {
         MinecraftClient client = MinecraftClient.getInstance();
         TextRenderer font = client.textRenderer;
 
-        // Use REMAINING blocks (not placed yet) for live tracking
         Map<BlockPos, BlockState> remaining = pm.getRemainingBlocks();
         List<MaterialList.Entry> entries = MaterialList.buildForRemainingBlocks(remaining);
 
@@ -180,18 +166,16 @@ public class PreviewRenderer {
 
         int displayCount = Math.min(entries.size(), HUD_MAX_ENTRIES);
         int extraLine = entries.size() > HUD_MAX_ENTRIES ? lineH : 0;
-        int statusLine = pm.isConfirmed() ? lineH : 0;
-        int panelH = 14 + displayCount * lineH + extraLine + statusLine + 2;
+        int panelH = 26 + displayCount * lineH + extraLine + 2;
 
-        // Background panel
         context.fill(panelX - 4, panelY - 4, screenW - 4, panelY + panelH, 0xBB000000);
 
-        // Status line
-        String statusText = pm.isConfirmed() ? "§a✔ Confirmed — /schematic build" : "§e● Floating — /schematic confirm";
+        String statusText = pm.isConfirmed()
+                ? "§a✔ Confirmed — /schematic build"
+                : "§e● Floating — /schematic confirm";
         context.drawTextWithShadow(font, statusText, panelX, panelY, 0xFFFFFF);
         panelY += 12;
 
-        // Title
         context.drawTextWithShadow(font, "§bMaterials needed", panelX, panelY, 0xFFFFFF);
         panelY += 12;
 
@@ -224,7 +208,6 @@ public class PreviewRenderer {
                                       float x1, float y1, float z1,
                                       float x2, float y2, float z2,
                                       float r, float g, float b, float a) {
-        // 6 faces as quads
         // Bottom
         buf.vertex(m, x1, y1, z1).color(r, g, b, a);
         buf.vertex(m, x2, y1, z1).color(r, g, b, a);
