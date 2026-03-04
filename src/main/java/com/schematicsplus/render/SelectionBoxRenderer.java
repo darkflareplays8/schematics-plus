@@ -8,16 +8,9 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.*;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import org.joml.Matrix4f;
 
-/**
- * Renders a coloured wireframe box around the current schematic selection.
- *
- * Blue  = point 1 set, waiting for point 2 (box follows the player's position)
- * Green = both points set, ready to save
- */
 public class SelectionBoxRenderer {
 
     public static void register() {
@@ -37,13 +30,11 @@ public class SelectionBoxRenderer {
         BlockPos point2;
 
         if (state == SchematicManager.SelectionState.POINT1_SET) {
-            // Second point follows the player live
             point2 = client.player.getBlockPos();
         } else {
             point2 = mgr.getPoint2();
         }
 
-        // Build axis-aligned bounding box from the two corners
         double minX = Math.min(point1.getX(), point2.getX());
         double minY = Math.min(point1.getY(), point2.getY());
         double minZ = Math.min(point1.getZ(), point2.getZ());
@@ -51,9 +42,6 @@ public class SelectionBoxRenderer {
         double maxY = Math.max(point1.getY(), point2.getY()) + 1.0;
         double maxZ = Math.max(point1.getZ(), point2.getZ()) + 1.0;
 
-        Box box = new Box(minX, minY, minZ, maxX, maxY, maxZ);
-
-        // Colour: blue while selecting, green when ready
         float r, g, b;
         if (state == SchematicManager.SelectionState.POINT1_SET) {
             r = 0.0f; g = 0.4f; b = 1.0f; // blue
@@ -69,51 +57,56 @@ public class SelectionBoxRenderer {
 
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
-        RenderSystem.disableDepthTest();
-        RenderSystem.lineWidth(2.0f);
+        RenderSystem.lineWidth(3.0f);
 
-        Tessellator tessellator = Tessellator.getInstance();
-        BufferBuilder buffer = tessellator.begin(VertexFormat.DrawMode.DEBUG_LINES, VertexFormats.POSITION_COLOR);
+        VertexConsumerProvider.Immediate immediate = client.getBufferBuilders().getEntityVertexConsumers();
+        VertexConsumer lines = immediate.getBuffer(RenderLayer.getLines());
 
         Matrix4f matrix = matrices.peek().getPositionMatrix();
-        drawBox(buffer, matrix, box, r, g, b, 1.0f);
+        org.joml.Matrix3f normalMatrix = matrices.peek().getNormalMatrix();
 
-        BufferRenderer.drawWithGlobalProgram(buffer.end());
+        drawBox(lines, matrix, normalMatrix, minX, minY, minZ, maxX, maxY, maxZ, r, g, b);
 
-        RenderSystem.enableDepthTest();
+        immediate.draw(RenderLayer.getLines());
+
         RenderSystem.disableBlend();
-
         matrices.pop();
     }
 
-    private static void drawBox(BufferBuilder buffer, Matrix4f matrix, Box box, float r, float g, float b, float a) {
-        float x1 = (float) box.minX, y1 = (float) box.minY, z1 = (float) box.minZ;
-        float x2 = (float) box.maxX, y2 = (float) box.maxY, z2 = (float) box.maxZ;
+    private static void drawBox(VertexConsumer lines, Matrix4f matrix, org.joml.Matrix3f normal,
+                                double x1, double y1, double z1,
+                                double x2, double y2, double z2,
+                                float r, float g, float b) {
+        float ax = (float) x1, ay = (float) y1, az = (float) z1;
+        float bx = (float) x2, by = (float) y2, bz = (float) z2;
 
         // Bottom face
-        line(buffer, matrix, x1, y1, z1, x2, y1, z1, r, g, b, a);
-        line(buffer, matrix, x2, y1, z1, x2, y1, z2, r, g, b, a);
-        line(buffer, matrix, x2, y1, z2, x1, y1, z2, r, g, b, a);
-        line(buffer, matrix, x1, y1, z2, x1, y1, z1, r, g, b, a);
-
+        line(lines, matrix, normal, ax, ay, az, bx, ay, az, r, g, b);
+        line(lines, matrix, normal, bx, ay, az, bx, ay, bz, r, g, b);
+        line(lines, matrix, normal, bx, ay, bz, ax, ay, bz, r, g, b);
+        line(lines, matrix, normal, ax, ay, bz, ax, ay, az, r, g, b);
         // Top face
-        line(buffer, matrix, x1, y2, z1, x2, y2, z1, r, g, b, a);
-        line(buffer, matrix, x2, y2, z1, x2, y2, z2, r, g, b, a);
-        line(buffer, matrix, x2, y2, z2, x1, y2, z2, r, g, b, a);
-        line(buffer, matrix, x1, y2, z2, x1, y2, z1, r, g, b, a);
-
+        line(lines, matrix, normal, ax, by, az, bx, by, az, r, g, b);
+        line(lines, matrix, normal, bx, by, az, bx, by, bz, r, g, b);
+        line(lines, matrix, normal, bx, by, bz, ax, by, bz, r, g, b);
+        line(lines, matrix, normal, ax, by, bz, ax, by, az, r, g, b);
         // Vertical edges
-        line(buffer, matrix, x1, y1, z1, x1, y2, z1, r, g, b, a);
-        line(buffer, matrix, x2, y1, z1, x2, y2, z1, r, g, b, a);
-        line(buffer, matrix, x2, y1, z2, x2, y2, z2, r, g, b, a);
-        line(buffer, matrix, x1, y1, z2, x1, y2, z2, r, g, b, a);
+        line(lines, matrix, normal, ax, ay, az, ax, by, az, r, g, b);
+        line(lines, matrix, normal, bx, ay, az, bx, by, az, r, g, b);
+        line(lines, matrix, normal, bx, ay, bz, bx, by, bz, r, g, b);
+        line(lines, matrix, normal, ax, ay, bz, ax, by, bz, r, g, b);
     }
 
-    private static void line(BufferBuilder buf, Matrix4f m,
+    private static void line(VertexConsumer lines, Matrix4f matrix, org.joml.Matrix3f normal,
                              float x1, float y1, float z1,
                              float x2, float y2, float z2,
-                             float r, float g, float b, float a) {
-        buf.vertex(m, x1, y1, z1).color(r, g, b, a);
-        buf.vertex(m, x2, y2, z2).color(r, g, b, a);
+                             float r, float g, float b) {
+        float nx = x2 - x1, ny = y2 - y1, nz = z2 - z1;
+        float len = (float) Math.sqrt(nx * nx + ny * ny + nz * nz);
+        if (len == 0) len = 1;
+        nx /= len; ny /= len; nz /= len;
+
+        lines.vertex(matrix, x1, y1, z1).color(r, g, b, 1.0f).normal(normal, nx, ny, nz);
+        lines.vertex(matrix, x2, y2, z2).color(r, g, b, 1.0f).normal(normal, nx, ny, nz);
     }
 }
