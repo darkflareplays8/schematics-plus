@@ -1,6 +1,7 @@
 package com.schematicsplus;
 
 import com.schematicsplus.command.SchematicCommand;
+import com.schematicsplus.render.SelectionBoxRenderer;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import org.slf4j.Logger;
@@ -28,6 +29,9 @@ public class SchematicsPlusMod implements ClientModInitializer {
         } catch (Exception e) {
             LOGGER.error("[Schematics+] Failed to create schematics directory!", e);
         }
+
+        // Register the selection box renderer
+        SelectionBoxRenderer.register();
 
         // Register all /schematic sub-commands
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {

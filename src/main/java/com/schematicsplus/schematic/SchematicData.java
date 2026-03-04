@@ -97,7 +97,7 @@ public class SchematicData {
             BlockPos pos = new BlockPos(posNbt.getInt("X"), posNbt.getInt("Y"), posNbt.getInt("Z"));
 
             BlockState state = NbtHelper.toBlockState(
-                    registryLookup.getOrThrow(net.minecraft.registry.RegistryKeys.BLOCK),
+                    registryLookup.getWrapperOrThrow(net.minecraft.registry.RegistryKeys.BLOCK),
                     blockEntry.getCompound("State")
             );
 
