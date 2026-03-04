@@ -2,38 +2,56 @@
 
 A client-side Fabric mod for Minecraft — **Litematica, but entirely command-driven.**
 
-No GUIs, no hotkeys to memorize. Every action is a `/schematic` command, and after each step the mod automatically suggests your next command in the chat bar.
+No GUIs. No hotkeys. Just `/schematic` commands, with the mod guiding you through every step automatically.
 
 ---
 
-## 🚀 Quick Start
+## ✨ Features
+
+- **Visual selection box** — blue while selecting, green when ready
+- **Ghost preview** — schematic floats with you before you place it
+  - 🔵 Cyan = clear to place
+  - 🔴 Red = overlapping existing blocks
+- **Survival-friendly** — uses blocks from your own inventory, no OP needed
+- **Material list** — see exactly what you need and how much you have
+- **Live HUD** — top-right overlay updates as you place blocks
+- **Auto-build** — places everything it can from your inventory in one command
+
+---
+
+## 🚀 Workflow
 
 ```
-/schematic select       ← stand at corner 1, run this
-/schematic select       ← walk to corner 2, run this again
-/schematic save myhouse ← saves the region
-/schematic load myhouse ← pastes it back at your feet later
+/schematic select           ← stand at corner 1
+/schematic select           ← walk to corner 2
+/schematic save myhouse     ← saves the region
+
+/schematic materials myhouse  ← check what blocks you need
+/schematic load myhouse       ← starts a ghost preview that follows you
+/schematic confirm            ← locks position (only works if no overlaps)
+/schematic build              ← places all blocks you have in inventory
 ```
 
 ---
 
 ## 📋 Commands
 
-| Command | What it does |
+| Command | Description |
 |---|---|
-| `/schematic` or `/schematic help` | Show all commands |
-| `/schematic select` | Mark your first or second selection corner (at player feet) |
-| `/schematic cancel` | Clear the current selection |
-| `/schematic save <n>` | Save the selected region to disk |
-| `/schematic load <n>` | Paste a saved schematic at your feet |
-| `/schematic list` | List all your saved schematics |
-| `/schematic info <n>` | Show size & block count of a saved schematic |
+| `/schematic help` | Show all commands |
+| `/schematic select` | Set corner 1 or 2 of your selection |
+| `/schematic cancel` | Clear selection or active preview |
+| `/schematic save <n>` | Save the selected region |
+| `/schematic load <n>` | Start a ghost preview of a schematic |
+| `/schematic confirm` | Lock the preview position in place |
+| `/schematic build` | Place all blocks you have from inventory |
+| `/schematic materials <n>` | List all materials needed and what you have |
+| `/schematic list` | List all saved schematics |
+| `/schematic info <n>` | Show size and block count |
 
 ---
 
-## 💾 Where are files saved?
-
-Schematics are saved as compressed `.nbt` files in:
+## 💾 Where files are saved
 
 ```
 .minecraft/schematics+/<n>.nbt
@@ -53,5 +71,6 @@ Check the [releases](../../releases) page for the correct jar for your Minecraft
 
 ## ⚠️ Notes
 
-- **Client-side only** — works in singleplayer and on any server (block placement still requires normal server permissions).
-- Tab completion works on `/schematic load` and `/schematic info` — it will suggest your saved schematic names.
+- **Client-side only** — no server installation needed. Works in singleplayer and on any server.
+- Block placement on servers uses the normal placement pipeline — you still need to be able to place blocks.
+- `/schematic build` only places blocks you physically have in your inventory.
