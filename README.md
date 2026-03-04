@@ -16,7 +16,21 @@ No GUIs. No hotkeys. Just `/schematic` commands that guide you through every ste
 - **Break freely** — break any block in the schematic region without it snapping back
 - **Material list** — see exactly what you need and how much you already have
 - **Live HUD** — top-right overlay updates in real time as you place or break blocks
-- **Auto-build** — places everything it can from your inventory in one command, picks up where it left off when you run it again
+- **Auto-build** — places everything it can from your inventory, picks up where it left off
+- **Cross-mod compatibility** — import schematics from Litematica and WorldEdit directly
+
+---
+
+## 🗂️ Supported Formats
+
+| Format | Extension | Notes |
+|---|---|---|
+| Schematics+ native | `.nbt` | Default save format |
+| Litematica | `.litematic` | Full block state support |
+| WorldEdit (Sponge) | `.schem` | Full block state support |
+| WorldEdit (MCEdit) | `.schematic` | Legacy format, common blocks only |
+
+Just drop the file into `.minecraft/schematics+/` and load it by name.
 
 ---
 
@@ -38,6 +52,12 @@ No GUIs. No hotkeys. Just `/schematic` commands that guide you through every ste
 ```
 
 Gather more materials and run `/schematic build` again — it picks up right where it left off.
+
+**Using a Litematica or WorldEdit schematic:**
+```
+← drop myhouse.litematic into .minecraft/schematics+/
+/schematic load myhouse
+```
 
 ---
 
@@ -61,8 +81,10 @@ Gather more materials and run `/schematic build` again — it picks up right whe
 ## 💾 Where files are saved
 
 ```
-.minecraft/schematics+/<n>.nbt
+.minecraft/schematics+/
 ```
+
+Drop `.litematic`, `.schem`, or `.schematic` files here to import them.
 
 ---
 
@@ -81,3 +103,4 @@ Check the [releases](../../releases) page for the correct jar for your Minecraft
 - **Client-side only** — no server installation needed. Works in singleplayer and on any server.
 - Block placement uses the normal placement pipeline — you still need permission to place blocks on the server.
 - `/schematic build` only uses blocks physically in your inventory.
+- MCEdit `.schematic` files use legacy numeric IDs — uncommon or modded blocks may not convert correctly.
