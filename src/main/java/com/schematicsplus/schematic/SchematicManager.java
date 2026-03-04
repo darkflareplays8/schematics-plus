@@ -3,6 +3,8 @@ package com.schematicsplus.schematic;
 import com.schematicsplus.SchematicsPlusMod;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.world.ClientWorld;
+import com.schematicsplus.importer.LitematicaImporter;
+import com.schematicsplus.importer.SpongeSchematicImporter;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.registry.RegistryWrapper;
@@ -118,18 +120,38 @@ public class SchematicManager {
     // ---------------------------------------------------------------
 
     /**
-     * Reads a schematic file and places every block at its world position,
-     * offset from the player's current feet position.
+     * Loads a schematic by name, auto-detecting format by extension.
+     * Searches for: <name>.nbt, <name>.litematic, <name>.schem, <name>.schematic
      */
     public SchematicData loadSchematic(String name, RegistryWrapper.WrapperLookup registryLookup) throws IOException {
-        Path filePath = SchematicsPlusMod.SCHEMATICS_DIR.resolve(sanitizeName(name) + ".nbt");
+        String safe = sanitizeName(name);
 
-        if (!Files.exists(filePath)) {
-            throw new IOException("Schematic '" + name + "' not found. Check your spelling or use /schematic list.");
+        // Try each supported extension in order
+        String[] extensions = {".nbt", ".litematic", ".schem", ".schematic"};
+        Path found = null;
+        String foundExt = null;
+
+        for (String ext : extensions) {
+            Path candidate = SchematicsPlusMod.SCHEMATICS_DIR.resolve(safe + ext);
+            if (Files.exists(candidate)) {
+                found = candidate;
+                foundExt = ext;
+                break;
+            }
         }
 
-        NbtCompound nbt = NbtIo.readCompressed(filePath, net.minecraft.nbt.NbtSizeTracker.ofUnlimitedBytes());
-        return SchematicData.fromNbt(nbt, registryLookup);
+        if (found == null) {
+            throw new IOException("Schematic '" + name + "' not found. Supported formats: .nbt, .litematic, .schem, .schematic");
+        }
+
+        return switch (foundExt) {
+            case ".litematic" -> LitematicaImporter.load(found, registryLookup);
+            case ".schem", ".schematic" -> SpongeSchematicImporter.load(found, registryLookup);
+            default -> {
+                NbtCompound nbt = NbtIo.readCompressed(found, net.minecraft.nbt.NbtSizeTracker.ofUnlimitedBytes());
+                yield SchematicData.fromNbt(nbt, registryLookup);
+            }
+        };
     }
 
     // ---------------------------------------------------------------
@@ -140,10 +162,20 @@ public class SchematicManager {
         List<String> names = new ArrayList<>();
         try {
             Files.list(SchematicsPlusMod.SCHEMATICS_DIR)
-                    .filter(p -> p.toString().endsWith(".nbt"))
+                    .filter(p -> {
+                        String n = p.toString();
+                        return n.endsWith(".nbt") || n.endsWith(".litematic")
+                                || n.endsWith(".schem") || n.endsWith(".schematic");
+                    })
                     .forEach(p -> {
                         String fileName = p.getFileName().toString();
-                        names.add(fileName.substring(0, fileName.length() - 4));
+                        // Strip the extension
+                        int dot = fileName.lastIndexOf('.');
+                        String nameOnly = dot >= 0 ? fileName.substring(0, dot) : fileName;
+                        // Show extension hint for foreign formats
+                        String ext = dot >= 0 ? fileName.substring(dot) : "";
+                        String display = ext.equals(".nbt") ? nameOnly : nameOnly + " §8(" + ext.substring(1) + ")";
+                        names.add(display);
                     });
         } catch (IOException e) {
             SchematicsPlusMod.LOGGER.error("[Schematics+] Failed to list schematics", e);
