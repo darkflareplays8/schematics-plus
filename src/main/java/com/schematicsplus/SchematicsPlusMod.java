@@ -1,9 +1,12 @@
 package com.schematicsplus;
 
 import com.schematicsplus.command.SchematicCommand;
+import com.schematicsplus.render.PreviewRenderer;
 import com.schematicsplus.render.SelectionBoxRenderer;
+import com.schematicsplus.schematic.PlacementManager;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,25 +21,29 @@ public class SchematicsPlusMod implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        // Create the schematics save directory inside .minecraft/schematics+/
         SCHEMATICS_DIR = net.fabricmc.loader.api.FabricLoader.getInstance()
                 .getGameDir()
                 .resolve("schematics+");
 
         try {
             Files.createDirectories(SCHEMATICS_DIR);
-            LOGGER.info("[Schematics+] Save directory ready at: {}", SCHEMATICS_DIR);
         } catch (Exception e) {
             LOGGER.error("[Schematics+] Failed to create schematics directory!", e);
         }
 
-        // Register the selection box renderer
         SelectionBoxRenderer.register();
+        PreviewRenderer.register();
 
-        // Register all /schematic sub-commands
-        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
-            SchematicCommand.register(dispatcher);
+        // Every tick: update anchor only when FLOATING (stops after confirm)
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            PlacementManager pm = PlacementManager.getInstance();
+            if (pm.isFloating() && client.player != null) {
+                pm.updateAnchor(client.player);
+            }
         });
+
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
+                SchematicCommand.register(dispatcher));
 
         LOGGER.info("[Schematics+] Loaded! Use /schematic to get started.");
     }
