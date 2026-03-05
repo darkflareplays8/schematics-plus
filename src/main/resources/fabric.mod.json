@@ -3,18 +3,19 @@
   "id": "schematicsplus",
   "version": "${version}",
   "name": "Schematics+",
-  "description": "Command-based schematic capture and placement — like Litematica, but entirely in chat.",
-  "authors": ["You"],
+  "description": "Command-based schematic capture and placement.",
+  "authors": ["ProfessionalFlare"],
   "contact": {},
   "license": "MIT",
-  "icon": "assets/schematicsplus/icon.png",
   "environment": "client",
   "entrypoints": {
     "client": [
       "com.schematicsplus.SchematicsPlusMod"
     ]
   },
-  "mixins": [],
+  "mixins": [
+    "schematicsplus.mixins.json"
+  ],
   "depends": {
     "fabricloader": ">=0.15.0",
     "fabric-api": "*",

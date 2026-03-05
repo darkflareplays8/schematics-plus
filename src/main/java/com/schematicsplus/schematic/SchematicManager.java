@@ -184,6 +184,40 @@ public class SchematicManager {
     }
 
     // ---------------------------------------------------------------
+    // Delete
+    // ---------------------------------------------------------------
+
+    public void deleteSchematic(String name) throws IOException {
+        String safe = sanitizeName(name);
+        String[] extensions = {".nbt", ".litematic", ".schem", ".schematic"};
+        for (String ext : extensions) {
+            Path candidate = SchematicsPlusMod.SCHEMATICS_DIR.resolve(safe + ext);
+            if (Files.exists(candidate)) {
+                Files.delete(candidate);
+                SchematicsPlusMod.LOGGER.info("[Schematics+] Deleted '{}'", candidate);
+                return;
+            }
+        }
+        throw new IOException("Schematic '" + name + "' not found.");
+    }
+
+    // ---------------------------------------------------------------
+    // Copy
+    // ---------------------------------------------------------------
+
+    public void copySchematic(String source, String dest, RegistryWrapper.WrapperLookup registryLookup) throws IOException {
+        SchematicData data = loadSchematic(source, registryLookup);
+        saveSchematic(dest, null, registryLookup, data);
+    }
+
+    /** Internal save that takes a pre-built SchematicData (used by copy) */
+    private void saveSchematic(String name, ClientWorld world, RegistryWrapper.WrapperLookup registryLookup, SchematicData data) throws IOException {
+        Path filePath = SchematicsPlusMod.SCHEMATICS_DIR.resolve(sanitizeName(name) + ".nbt");
+        NbtIo.writeCompressed(data.toNbt(), filePath);
+        SchematicsPlusMod.LOGGER.info("[Schematics+] Saved copy '{}' to {}", name, filePath);
+    }
+
+    // ---------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------
 
