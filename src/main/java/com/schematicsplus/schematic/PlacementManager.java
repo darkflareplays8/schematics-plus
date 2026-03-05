@@ -232,10 +232,19 @@ public class PlacementManager {
         if (state != PreviewState.FLOATING) return;
         Vec3d feet = player.getPos();
         Direction facing = player.getHorizontalFacing();
+
+        // Calculate the schematic's depth along the facing axis so it
+        // sits fully in front of the player with a 2-block gap.
+        int depthX = relativeBlocks.keySet().stream().mapToInt(BlockPos::getX).max().orElse(0) + 1;
+        int depthZ = relativeBlocks.keySet().stream().mapToInt(BlockPos::getZ).max().orElse(0) + 1;
+        int gap = 2;
+        int offsetX = facing.getOffsetX() * (gap + (facing.getAxis() == net.minecraft.util.math.Direction.Axis.X ? depthX : depthZ));
+        int offsetZ = facing.getOffsetZ() * (gap + (facing.getAxis() == net.minecraft.util.math.Direction.Axis.Z ? depthZ : depthX));
+
         anchorPos = new BlockPos(
-                (int) Math.floor(feet.x) + facing.getOffsetX() * 3,
+                (int) Math.floor(feet.x) + offsetX,
                 (int) Math.floor(feet.y),
-                (int) Math.floor(feet.z) + facing.getOffsetZ() * 3
+                (int) Math.floor(feet.z) + offsetZ
         );
     }
 
@@ -256,9 +265,15 @@ public class PlacementManager {
             BlockPos worldPos = anchorPos.add(entry.getKey());
             BlockState schematicState = entry.getValue();
             BlockState worldState = client.world.getBlockState(worldPos);
-            if (!worldState.getBlock().equals(schematicState.getBlock())) {
-                result.put(worldPos, schematicState);
-            }
+
+            // Already correctly placed — skip
+            if (worldState.getBlock().equals(schematicState.getBlock())) continue;
+
+            // Overlapping with a DIFFERENT block — don't count as needing materials
+            // (you can't place there yet anyway; once the overlap is cleared it will appear)
+            if (!(worldState.getBlock() instanceof net.minecraft.block.AirBlock)) continue;
+
+            result.put(worldPos, schematicState);
         }
         return result;
     }
