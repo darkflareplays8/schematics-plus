@@ -177,8 +177,15 @@ public class PreviewRenderer {
         MinecraftClient client = MinecraftClient.getInstance();
         TextRenderer font = client.textRenderer;
 
-        Map<BlockPos, BlockState> remaining = pm.getRemainingBlocks();
-        List<MaterialList.Entry> entries = MaterialList.buildForRemainingBlocks(remaining);
+        // FLOATING: show full schematic material requirements from file
+        // CONFIRMED: show live remaining blocks (updates as you place)
+        List<MaterialList.Entry> entries;
+        if (pm.isConfirmed()) {
+            Map<BlockPos, BlockState> remaining = pm.getRemainingBlocks();
+            entries = MaterialList.buildForRemainingBlocks(remaining);
+        } else {
+            entries = MaterialList.build(pm.getActiveSchematic());
+        }
         if (entries.isEmpty()) return;
 
         int screenW = client.getWindow().getScaledWidth();
