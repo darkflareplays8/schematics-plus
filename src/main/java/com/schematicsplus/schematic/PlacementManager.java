@@ -36,6 +36,10 @@ public class PlacementManager {
     // Nearest missing block cache (updated on demand)
     private BlockPos nearestMissing = null;
 
+    // True after nudge — stops auto-follow until player moves to a new block position
+    private boolean manuallyPositioned = false;
+    private BlockPos lastPlayerPos = null;
+
     // ----------------------------------------------------------------
     // Lifecycle
     // ----------------------------------------------------------------
@@ -50,6 +54,8 @@ public class PlacementManager {
         this.flippedZ = false;
         this.manuallyBroken.clear();
         this.nearestMissing = null;
+        this.manuallyPositioned = false;
+        this.lastPlayerPos = null;
         rebuildTransformedBlocks();
     }
 
@@ -83,12 +89,14 @@ public class PlacementManager {
     /** Flip on X axis (mirrors east/west) */
     public void flipX() {
         flippedX = !flippedX;
+        manuallyPositioned = false;
         rebuildTransformedBlocks();
     }
 
     /** Flip on Z axis (mirrors north/south) */
     public void flipZ() {
         flippedZ = !flippedZ;
+        manuallyPositioned = false;
         rebuildTransformedBlocks();
     }
 
@@ -164,6 +172,7 @@ public class PlacementManager {
 
     public void nudge(Direction direction) {
         anchorPos = anchorPos.offset(direction);
+        manuallyPositioned = true;
     }
 
     // ----------------------------------------------------------------
@@ -230,6 +239,18 @@ public class PlacementManager {
 
     public void updateAnchor(ClientPlayerEntity player) {
         if (state != PreviewState.FLOATING) return;
+
+        BlockPos currentPos = player.getBlockPos();
+        if (manuallyPositioned) {
+            // Resume auto-follow only once the player has moved to a new block position
+            if (lastPlayerPos != null && !currentPos.equals(lastPlayerPos)) {
+                manuallyPositioned = false;
+            } else {
+                lastPlayerPos = currentPos;
+                return;
+            }
+        }
+        lastPlayerPos = currentPos;
         Vec3d feet = player.getPos();
         Direction facing = player.getHorizontalFacing();
 
@@ -269,10 +290,8 @@ public class PlacementManager {
             // Already correctly placed — skip
             if (worldState.getBlock().equals(schematicState.getBlock())) continue;
 
-            // Overlapping with a DIFFERENT block — don't count as needing materials
-            // (you can't place there yet anyway; once the overlap is cleared it will appear)
-            if (!(worldState.getBlock() instanceof net.minecraft.block.AirBlock)) continue;
-
+            // Count everything else — air OR overlapping wrong block
+            // Material count should always reflect what the full schematic needs
             result.put(worldPos, schematicState);
         }
         return result;
