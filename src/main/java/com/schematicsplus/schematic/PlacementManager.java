@@ -191,6 +191,10 @@ public class PlacementManager {
         return manuallyBroken.contains(worldPos);
     }
 
+    public Set<BlockPos> getManuallyBroken() {
+        return manuallyBroken;
+    }
+
     // ----------------------------------------------------------------
     // Nearest missing block
     // ----------------------------------------------------------------

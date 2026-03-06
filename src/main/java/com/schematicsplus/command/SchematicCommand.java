@@ -319,12 +319,12 @@ public class SchematicCommand {
             ChatUtil.suggestCommand("/schematic load ");
             return 0;
         }
-        ClientPlayerEntity player = MinecraftClient.getInstance().player;
-        ClientWorld world = MinecraftClient.getInstance().world;
-        if (player == null || world == null) return 0;
+        MinecraftClient client = MinecraftClient.getInstance();
+        ClientPlayerEntity player = client.player;
+        ClientWorld world = client.world;
+        if (player == null || world == null || client.interactionManager == null) return 0;
 
         Map<BlockPos, BlockState> worldBlocks = pm.getWorldBlocks();
-        Map<String, Integer> inventoryCount = MaterialList.countPlayerInventory();
         int placed = 0, skipped = 0, noBlocks = 0;
 
         for (var entry : worldBlocks.entrySet()) {
@@ -332,11 +332,32 @@ public class SchematicCommand {
             BlockState state = entry.getValue();
             if (state.getBlock() instanceof AirBlock) continue;
             if (!(world.getBlockState(pos).getBlock() instanceof AirBlock)) { skipped++; continue; }
+
             String blockId = Registries.BLOCK.getId(state.getBlock()).toString();
-            int have = inventoryCount.getOrDefault(blockId, 0);
-            if (have <= 0) { noBlocks++; continue; }
-            inventoryCount.put(blockId, have - 1);
-            world.setBlockState(pos, state, 3);
+
+            // Find the item in the player's inventory and switch to that hotbar slot
+            int slot = -1;
+            for (int i = 0; i < 9; i++) {
+                net.minecraft.item.ItemStack stack = player.getInventory().getStack(i);
+                if (!stack.isEmpty()) {
+                    String itemId = net.minecraft.registry.Registries.ITEM.getId(stack.getItem()).toString();
+                    if (itemId.equals(blockId)) { slot = i; break; }
+                }
+            }
+            if (slot == -1) { noBlocks++; continue; }
+
+            // Switch to that hotbar slot, place via interactionManager (sends real packet)
+            player.getInventory().selectedSlot = slot;
+            client.interactionManager.interactBlock(
+                    player,
+                    net.minecraft.util.Hand.MAIN_HAND,
+                    new net.minecraft.util.hit.BlockHitResult(
+                            net.minecraft.util.math.Vec3d.ofCenter(pos.down()),
+                            net.minecraft.util.math.Direction.UP,
+                            pos.down(),
+                            false
+                    )
+            );
             placed++;
         }
 
@@ -344,7 +365,7 @@ public class SchematicCommand {
         if (skipped > 0) ChatUtil.sendInfo("Skipped §f" + skipped + "§7 (already occupied).");
         if (noBlocks > 0) {
             ChatUtil.sendHint("Missing materials for §f" + noBlocks + "§e blocks — gather more and run §f/schematic build §eagain.");
-        } else if (skipped == 0) {
+        } else if (placed > 0 && skipped == 0 && noBlocks == 0) {
             PlacementManager.getInstance().clearPreview();
             ChatUtil.sendSuccess("Schematic complete! Preview cleared.");
         }

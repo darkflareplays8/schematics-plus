@@ -4,9 +4,7 @@
   "package": "com.schematicsplus.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [],
-  "client": [
-    "ClientWorldMixin"
-  ],
+  "client": [],
   "injectors": {
     "defaultRequire": 1
   }

@@ -70,8 +70,12 @@ public class PreviewRenderer {
 
             // Skip already-placed blocks
             BlockState worldState = client.world.getBlockState(pos);
-            boolean alreadyPlaced = worldState.getBlock().equals(schematicState.getBlock());
-            if (alreadyPlaced) continue;
+            // Skip if already correctly placed
+            if (worldState.getBlock().equals(schematicState.getBlock())) continue;
+
+            // Skip if world is currently air — block was broken, don't re-ghost it
+            // unless it's a confirmed schematic position that still needs placing
+            if (worldState.getBlock() instanceof AirBlock && pm.wasManuallyBroken(pos)) continue;
 
             boolean overlaps = !(worldState.getBlock() instanceof AirBlock);
 
@@ -140,6 +144,7 @@ public class PreviewRenderer {
 
             BlockState worldState = client.world.getBlockState(pos);
             if (worldState.getBlock().equals(schematicState.getBlock())) continue;
+            if (pm.wasManuallyBroken(pos)) continue;
 
             boolean overlaps = !(worldState.getBlock() instanceof AirBlock);
             float r = overlaps ? 1.0f : 0.2f;
